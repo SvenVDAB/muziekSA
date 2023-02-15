@@ -1,8 +1,10 @@
 package be.vdab.muzieksa.restcontrollers;
 
 import be.vdab.muzieksa.domain.Album;
+import be.vdab.muzieksa.domain.Track;
 import be.vdab.muzieksa.exceptions.AlbumNietGevondenException;
 import be.vdab.muzieksa.services.AlbumService;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.EntityLinks;
 import org.springframework.hateoas.server.ExposesResourceFor;
@@ -31,7 +33,8 @@ public class AlbumController {
     @GetMapping("{id}")
         // version showing the structure for the exercise
     EntityModel<AlbumEnArtiest> get(@PathVariable long id) {
-        return albumService.findById(id)
+        return albumService
+                .findById(id)
                 .map(album -> EntityModel.of(new AlbumEnArtiest(album),
                                 links.linkToItemResource(album),
                                 links.linkForItemResource(album)
@@ -42,11 +45,22 @@ public class AlbumController {
                 .orElseThrow(AlbumNietGevondenException::new);
     }
 
-    private class AlbumEnArtiest {
+    @GetMapping("{id}/tracks")
+        // version showing the structure for the exercise
+    CollectionModel<EntityModel<Track>> getTracks(@PathVariable long id) {
+        return CollectionModel.of(
+                albumService.findTracksById(id).stream()
+                        .map(track -> EntityModel.of(track))::iterator,
+                links.linkForItemResource(albumService.findById(id).get()).slash("tracks").withRel("self"),
+                links.linkForItemResource(albumService.findById(id).get()).withRel("album"),
+                links.linkToCollectionResource().withRel("test")
+        );
+    }
+
+    private static class AlbumEnArtiest {
         private String album;
         private String artiest;
-        protected AlbumEnArtiest() { ///!!!!!
-        }
+
         public AlbumEnArtiest(Album album) {
             this.album = album.getNaam();
             this.artiest = album.getArtiest().getNaam();
